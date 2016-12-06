@@ -1,19 +1,26 @@
 package com.agr.puhup.controller;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.agr.puhup.model.User;
 import com.agr.puhup.service.SecurityService;
 import com.agr.puhup.service.UserService;
 import com.agr.puhup.validator.UserValidator;
 
-@Controller
+@RestController
+@EnableAutoConfiguration
 public class UserController {
 	@Autowired
 	private UserService userService;
@@ -32,33 +39,22 @@ public class UserController {
 	}
 
 	@RequestMapping(value = "/registration", method = RequestMethod.POST)
-	public String registration(@ModelAttribute("userForm") User userForm, BindingResult bindingResult, Model model) {
-		userValidator.validate(userForm, bindingResult);
-
-		if (bindingResult.hasErrors()) {
-			return "registration";
+	public User registration(@RequestBody User user, BindingResult bindingResult) throws Exception {
+		String birthDate = user.getBirthDate();
+		if (birthDate != null && !birthDate.isEmpty()) {
+			DateFormat formatter = new SimpleDateFormat("dd/mm/yyyy");
+			Date dob = (Date) formatter.parse(birthDate);
+			user.setDob(dob);
 		}
-
-		userService.save(userForm);
-
-		securityService.autologin(userForm.getUsername(), userForm.getPasswordConfirm());
-
-		return "redirect:/welcome";
+		userValidator.validate(user, bindingResult);
+		userService.save(user);
+		securityService.autologin(user.getUsername(), user.getPasswordConfirm());
+		return user;
 	}
 
-	@RequestMapping(value = "/login", method = RequestMethod.GET)
-	public String login(Model model, String error, String logout) {
-		if (error != null)
-			model.addAttribute("error", "Your username and password is invalid.");
-
-		if (logout != null)
-			model.addAttribute("message", "You have been logged out successfully.");
-
-		return "login";
+	@RequestMapping(value = "/login", method = RequestMethod.POST)
+	public UsernamePasswordAuthenticationToken login(@RequestBody User user) {
+		return securityService.login(user);
 	}
 
-	@RequestMapping(value = { "/", "/welcome" }, method = RequestMethod.GET)
-	public String welcome(Model model) {
-		return "welcome";
-	}
 }

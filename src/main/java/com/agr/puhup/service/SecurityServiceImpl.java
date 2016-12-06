@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
+import com.agr.puhup.model.User;
+
 @Service
 public class SecurityServiceImpl implements SecurityService{
     @Autowired
@@ -30,7 +32,7 @@ public class SecurityServiceImpl implements SecurityService{
     }
 
     @Override
-    public void autologin(String username, String password) {
+    public UsernamePasswordAuthenticationToken autologin(String username, String password) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, password, userDetails.getAuthorities());
 
@@ -40,5 +42,19 @@ public class SecurityServiceImpl implements SecurityService{
             SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             logger.debug(String.format("Auto login %s successfully!", username));
         }
+		return usernamePasswordAuthenticationToken;
+    }
+    @Override
+    public UsernamePasswordAuthenticationToken login(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userDetails, user.getPassword(), userDetails.getAuthorities());
+
+        authenticationManager.authenticate(usernamePasswordAuthenticationToken);
+
+        if (usernamePasswordAuthenticationToken.isAuthenticated()) {
+            SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            logger.debug(String.format("Auto login %s successfully!", user.getUsername()));
+        }
+		return usernamePasswordAuthenticationToken;
     }
 }
